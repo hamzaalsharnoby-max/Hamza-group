@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hamza World Games</title>
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;padding:15px;
+font-family:Arial;
+text-align:center;color:white;
+background:linear-gradient(140deg,#10102e,#402078);
+}
+h1{color:#ffd700;font-size:38px}
+h2{color:#ffe36a}
+.card{
+background:#ffffff18;
+border:1px solid #ffffff30;
+border-radius:20px;
+padding:18px;
+margin:18px auto;
+max-width:500px;
+}
+button{
+background:#ffd700;color:#17132e;
+border:0;border-radius:12px;
+padding:12px 18px;
+font-size:17px;margin:5px;
+cursor:pointer;
+}
+button:disabled{opacity:.5}
+p{font-size:19px;line-height:1.7}
+#board{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:7px;max-width:300px;margin:auto;
+}
+.cell{
+height:85px;font-size:35px;
+background:#fff;color:#402078;
+border-radius:12px;
+}
+#snakeBoard{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:4px;max-width:350px;margin:auto;
+}
+.square{
+background:#eee;color:#222;
+padding:12px 2px;
+border-radius:6px;font-size:14px;
+}
+.player{background:#ffd700!important;font-weight:bold}
+input{
+width:100px;padding:12px;
+border-radius:10px;font-size:20px;
+}
+footer{padding:25px;color:#ffe36a}
+</style>
+</head>
+<body>
+
+<h1>🌍 Hamza World</h1>
+<h2>🎮 عالم الألعاب والتسلية</h2>
+<p>العب واكسب التحديات! ❤️</p>
+
+<div class="card">
+<h2>❌ لعبة XO</h2>
+<p id="xoTurn">الدور على X</p>
+<div id="board"></div>
+<p id="xoResult"></p>
+<button onclick="resetXO()">إعادة اللعب 🔄</button>
+</div>
+
+<div class="card">
+<h2>🐍 السلم والثعبان</h2>
+<p>العب أنت وصاحبك! أول واحد يوصل للمربع 25 يكسب.</p>
+<div id="snakeBoard"></div>
+<p id="snakeTurn">الدور على اللاعب الأول</p>
+<p id="snakeResult"></p>
+<button onclick="rollSnake()">ارمِ النرد 🎲</button>
+<button onclick="resetSnake()">لعبة جديدة 🔄</button>
+</div>
+
+<div class="card">
+<h2>😂 قسم النكت</h2>
+<p id="joke">اضغط عشان تسمع نكتة!</p>
+<button onclick="newJoke()">هات نكتة 😂</button>
+</div>
+
+<div class="card">
+<h2>🧠 ألغاز اليوم</h2>
+<p id="riddle">اضغط على زر اللغز!</p>
+<p id="answer"></p>
+<button onclick="newRiddle()">لغز جديد 🧩</button>
+<button onclick="showAnswer()">اعرف الإجابة</button>
+</div>
+
+<div class="card">
+<h2>⚡ اختبار سرعة الضغط</h2>
+<p>اضغط بأسرع ما عندك لمدة 10 ثواني!</p>
+<button id="startSpeed" onclick="startSpeed()">ابدأ</button>
+<button id="tapSpeed" onclick="tapSpeed()" disabled>اضغط بسرعة!</button>
+<p id="speedScore">النقاط: 0</p>
+<p id="speedTimer"></p>
+</div>
+
+<div class="card">
+<h2>🎲 لعبة النرد</h2>
+<p id="dice">ارمِ النرد!</p>
+<button onclick="rollDice()">ارمِ النرد 🎲</button>
+</div>
+
+<footer>
+صنع بكل حب بواسطة حمزة ❤️
+<br>Hamza World 2026
+</footer>
+
+<script>
+// لعبة XO
+let xo=["","","","","","","","",""];
+let turn="X",xoDone=false;
+const wins=[
+[0,1,2],[3,4,5],[6,7,8],
+[0,3,6],[1,4,7],[2,5,8],
+[0,4,8],[2,4,6]
+];
+
+function drawXO(){
+let board=document.getElementById("board");
+board.innerHTML="";
+xo.forEach((v,i)=>{
+let b=document.createElement("button");
+b.className="cell";
+b.textContent=v;
+b.onclick=()=>moveXO(i);
+b.disabled=!!v||xoDone;
+board.appendChild(b);
+});
+}
+
+function moveXO(i){
+if(xo[i]||xoDone)return;
+xo[i]=turn;
+let won=wins.some(line=>line.every(n=>xo[n]===turn));
+if(won){
+document.getElementById("xoResult").textContent=
+"🎉 اللاعب "+turn+" كسب!";
+xoDone=true;
+}else if(xo.every(v=>v)){
+document.getElementById("xoResult").textContent="تعادل!";
+xoDone=true;
+}else{
+turn=turn==="X"?"O":"X";
+}
+document.getElementById("xoTurn").textContent="الدور على "+turn;
+drawXO();
+}
+function resetXO(){
+xo=["","","","","","","","",""];
+turn="X";xoDone=false;
+document.getElementById("xoResult").textContent="";
+document.getElementById("xoTurn").textContent="الدور على X";
+drawXO();
+}
+drawXO();
+
+// السلم والثعبان
+let players=[1,1],current=0,finished=false;
+const ladders={3:11,8:17,15:24};
+const snakes={12:5,19:9,22:14};
+
+function drawSnake(){
+let board=document.getElementById("snakeBoard");
+board.innerHTML="";
+for(let i=25;i>=1;i--){
+let s=document.createElement("div");
+s.className="square";
+let extra="";
+if(players[0]===i)extra+=" 🔴";
+if(players[1]===i)extra+=" 🔵";
+if(ladders[i])extra+=" 🪜";
+if(snakes[i])extra+=" 🐍";
+s.textContent=i+extra;
+if(extra.includes("🔴")||extra.includes("🔵"))
+s.classList.add("player");
+board.appendChild(s);
+}
+}
+function rollSnake(){
+if(finished)return;
+let n=Math.floor(Math.random()*6)+1;
+let old=players[current];
+let next=Math.min(25,old+n);
+let message="طلعلك "+n+" 🎲";
+if(ladders[next]){
+next=ladders[next];
+message+=" طلعت السلم! 🪜";
+}else if(snakes[next]){
+next=snakes[next];
+message+=" نزلت من الثعبان! 🐍";
+}
+players[current]=next;
+document.getElementById("snakeResult").textContent=
+message+" وصلت للمربع "+next;
+if(next===25){
+document.getElementById("snakeTurn").textContent=
+"🏆 اللاعب "+(current+1)+" كسب!";
+finished=true;
+}else{
+current=1-current;
+document.getElementById("snakeTurn").textContent=
+"الدور على اللاعب "+(current+1);
+}
+drawSnake();
+}
+function resetSnake(){
+players=[1,1];current=0;finished=false;
+document.getElementById("snakeResult").textContent="";
+document.getElementById("snakeTurn").textContent="الدور على اللاعب الأول";
+drawSnake();
+}
+drawSnake();
+
+// النكت
+const jokes=[
+"مرة كمبيوتر عطس قالوله عندك فيروس 😂",
+"مرة واحد نام متأخر فاته الحلم!",
+"مرة مدرس رياضيات خلف ولد سماه س زائد واحد!",
+"مرة طماطم دخلت الخلاط قالت الحقوني!",
+"مرة واحد اشترى سرير نام عليه بالتقسيط!",
+"مرة سمكة طلعت من البحر قالت أنا عطشانة!",
+"مرة كتاب رياضيات زعلان كله مسائل!",
+"مرة قطة دخلت امتحان جابت درجات مواء!",
+"مرة واحد جاع أكل كتاب طبخ!",
+"مرة نملة اتجوزت فيل خلفوا فيل صغير!",
+"مرة قلم رصاص زعل قال أنا متكسر من جوا!",
+"مرة واحد اشترى مروحة قعد يحكيلها أسراره!",
+"مرة باب اتخانق مع شباك قاله أنت بتبص عليا ليه؟",
+"مرة واحد دخل محل ساعات خرج متأخر!",
+"مرة بطاطساية اتجوزت خلفت صينية 😂"
+];
+function newJoke(){
+document.getElementById("joke").textContent=
+jokes[Math.floor(Math.random()*jokes.length)];
+}
+
+// الألغاز
+const riddles=[
+["إيه الشيء اللي له أسنان ومبيعضش؟","المشط"],
+["إيه الشيء اللي كل ما تاخد منه يكبر؟","الحفرة"],
+["إيه الشيء اللي يمشي بلا رجلين؟","الوقت"],
+["إيه الشيء اللي له عين واحدة ومبيشوفش؟","الإبرة"],
+["إيه الشيء اللي نكسره قبل ما نستخدمه؟","البيضة"],
+["إيه الشيء اللي بيكتب ومبيقرأش؟","القلم"],
+["إيه البيت اللي مفيهوش أبواب ولا شبابيك؟","بيت الشعر"],
+["إيه الشيء اللي كل ما زاد نقص؟","العمر المتبقي"],
+["إيه الشيء اللي له رقبة ومفيهوش رأس؟","الزجاجة"],
+["إيه الشيء اللي يسمع بلا أذن ويتكلم بلا لسان؟","الصدى"]
+];
+let riddleIndex=0;
+function newRiddle(){
+riddleIndex=Math.floor(Math.random()*riddles.length);
+document.getElementById("riddle").textContent=
+riddles[riddleIndex][0];
+document.getElementById("answer").textContent="";
+}
+function showAnswer(){
+document.getElementById("answer").textContent=
+"الإجابة: "+riddles[riddleIndex][1]+" 😁";
+}
+newRiddle();
+
+// سرعة الضغط
+let speedPoints=0,speedPlaying=false,speedInterval;
+function startSpeed(){
+clearInterval(speedInterval);
+speedPoints=0;speedPlaying=true;
+let time=10;
+document.getElementById("speedScore").textContent="النقاط: 0";
+document.getElementById("tapSpeed").disabled=false;
+document.getElementById("startSpeed").disabled=true;
+document.getElementById("speedTimer").textContent="الوقت: 10";
+speedInterval=setInterval(()=>{
+time--;
+document.getElementById("speedTimer").textContent="الوقت: "+time;
+if(time<=0){
+clearInterval(speedInterval);
+speedPlaying=false;
+document.getElementById("tapSpeed").disabled=true;
+document.getElementById("startSpeed").disabled=false;
+document.getElementById("speedTimer").textContent=
+"انتهى الوقت! نتيجتك: "+speedPoints+" 🎉";
+}
+},1000);
+}
+function tapSpeed(){
+if(!speedPlaying)return;
+speedPoints++;
+document.getElementById("speedScore").textContent=
+"النقاط: "+speedPoints;
+}
+
+// النرد
+function rollDice(){
+let n=Math.floor(Math.random()*6)+1;
+let faces=["⚀","⚁","⚂","⚃","⚄","⚅"];
+document.getElementById("dice").textContent=
+"طلعت "+n+" "+faces[n-1];
+}
+</script>
+</body>
+</html>
